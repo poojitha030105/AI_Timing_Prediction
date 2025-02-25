@@ -1,53 +1,45 @@
-Brief Summary
-Timing violations in RTL designs delay project execution due to slow synthesis processes. This project develops an AI model to predict combinational logic depth for signals in RTL modules. The approach involves dataset creation, feature engineering, machine learning model selection, training, and evaluation. By accurately estimating logic depth pre-synthesis, the proposed solution accelerates timing analysis and reduces design iterations.
+import numpy as np
+import pandas as pd
+import networkx as nx
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_absolute_error, mean_squared_error
 
-Problem Statement
-Modern semiconductor designs require rigorous timing analysis to ensure functional correctness and optimal performance. Timing violations arise when the combinational logic depth exceeds the permissible threshold for a given clock cycle. Current methodologies rely on full synthesis reports, which are computationally expensive. This project aims to develop a machine learning model that predicts combinational logic depth in behavioral RTL without requiring full synthesis. This solution benefits hardware engineers by reducing analysis time and improving design efficiency.
+# Step 1: Generate a synthetic dataset (RTL logic depth information)
+def generate_synthetic_data(samples=1000):
+    np.random.seed(42)
+    data = {
+        "fan_in": np.random.randint(1, 10, samples),
+        "fan_out": np.random.randint(1, 10, samples),
+        "num_gates": np.random.randint(10, 100, samples),
+        "path_length": np.random.randint(5, 50, samples),
+        "logic_depth": np.random.randint(1, 20, samples)  # Target variable
+    }
+    return pd.DataFrame(data)
 
-The Approach Used to Generate the Algorithm
+# Step 2: Extract features and split dataset
+df = generate_synthetic_data()
+X = df.drop(columns=["logic_depth"])
+y = df["logic_depth"]
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-Dataset Creation: Gather RTL design files and corresponding synthesis reports to extract logic depth information for key signals.
+# Step 3: Train a Machine Learning Model (Random Forest)
+model = RandomForestRegressor(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
 
-Feature Engineering: Extract key features affecting logic depth, such as fan-in, fan-out, logic gate count, and signal path length.
+# Step 4: Evaluate the model
+y_pred = model.predict(X_test)
+mae = mean_absolute_error(y_test, y_pred)
+rmse = np.sqrt(mean_squared_error(y_test, y_pred))
 
-ML Model Selection: Compare multiple models like Decision Trees, Random Forests, and Neural Networks for accuracy and runtime efficiency.
+print(f"Mean Absolute Error (MAE): {mae}")
+print(f"Root Mean Squared Error (RMSE): {rmse}")
 
-Training: Use supervised learning to train the model on annotated datasets with known logic depths.
+# Step 5: Function to predict combinational logic depth
+def predict_logic_depth(fan_in, fan_out, num_gates, path_length):
+    input_features = np.array([[fan_in, fan_out, num_gates, path_length]])
+    return model.predict(input_features)[0]
 
-Evaluation: Split dataset into training and testing sets to validate prediction accuracy against ground truth from synthesis reports.
-
-Proof of Correctness
-
-The model's predictions are compared with actual logic depth values extracted from synthesis tools.
-
-Cross-validation techniques ensure robustness.
-
-Performance is measured using metrics such as Mean Absolute Error (MAE) and Root Mean Squared Error (RMSE).
-
-The AI model is iteratively fine-tuned to improve prediction accuracy based on evaluation results.
-
-Complexity Analysis
-
-Preprocessing Complexity: O(n) for extracting features from RTL files.
-
-Training Complexity: Depends on the ML model used; Decision Trees have O(n log n), whereas Neural Networks may have O(n^2) complexity.
-
-Inference Complexity: O(1) per signal, making real-time predictions feasible.
-
-Alternatives Considered
-
-Rule-Based Heuristics: Manually defined logic depth estimation rules, but lacked flexibility and accuracy.
-
-Graph-Based Algorithms: Using graph traversal to estimate depth but required synthesis-like preprocessing.
-
-Hybrid ML + Heuristic Models: Combining rule-based methods with ML, but found ML models alone to be more efficient.
-
-References and Appendices
-
-IEEE papers on timing analysis and logic depth estimation.
-
-Open-source EDA tools like Yosys for dataset generation.
-
-Public datasets of synthesized RTL designs with annotated logic depths.
-
-Diagrams illustrating combinational paths and feature extraction methodology.
+# Example prediction
+example_signal = predict_logic_depth(fan_in=4, fan_out=5, num_gates=50, path_length=25)
+print(f"Predicted Logic Depth: {example_signal}")
